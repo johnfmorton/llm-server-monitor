@@ -310,18 +310,18 @@ final class Snapshot implements Section
             if ($release === false || !is_dir("$release/.git")) {
                 continue;
             }
-            $git = $this->gitCommand($ctx, $release);
-            if ($git === null) {
-                continue;
-            }
+            [$git, $gitProblem] = $this->gitCommand($ctx, $release);
             $checked++;
             $releaseId = basename($release);
 
-            $r = $ctx->cmd->run("git-head-$id", [...$git, 'rev-parse', 'HEAD']);
-            $head = substr(trim($r['out'] ?? ''), 0, 12);
-
+            $head = '';
             $modified = [];
-            $r = $ctx->cmd->run("git-status-$id", [...$git, 'status', '--porcelain=v1', '--untracked-files=no']);
+            $r = null;
+            if ($git !== null) {
+                $r = $ctx->cmd->run("git-head-$id", [...$git, 'rev-parse', 'HEAD']);
+                $head = substr(trim($r['out'] ?? ''), 0, 12);
+                $r = $ctx->cmd->run("git-status-$id", [...$git, 'status', '--porcelain=v1', '--untracked-files=no']);
+            }
             foreach (preg_split('/\R/', rtrim($r['out'] ?? '')) as $l) {
                 if (strlen($l) <= 3) {
                     continue;
@@ -344,13 +344,16 @@ final class Snapshot implements Section
             $webroot = $site['webroot'] ?? 'public';
             $webDir = $webroot === '' ? $release : "$release/$webroot";
             if (is_dir($webDir)) {
-                $r = $ctx->cmd->run("git-ls-files-$id", [...$git, 'ls-files', '--', $webroot === '' ? '.' : $webroot]);
-                $tracked = array_flip(preg_split('/\R/', trim($r['out'] ?? '')));
+                $tracked = null;
+                if ($git !== null) {
+                    $r = $ctx->cmd->run("git-ls-files-$id", [...$git, 'ls-files', '--', $webroot === '' ? '.' : $webroot]);
+                    $tracked = array_flip(preg_split('/\R/', trim($r['out'] ?? '')));
+                }
                 $prefix = strlen($release) + 1;
                 foreach ($this->walk($webDir, $truncated) as $file) {
                     $rel = substr($file, $prefix);
                     $files[$rel] = SafeFile::hash($file, 5 * 1048576) ?? 'unreadable';
-                    if (!isset($tracked[$rel])) {
+                    if ($tracked !== null && !isset($tracked[$rel])) {
                         $untracked[] = $ctx->anon->scrub($rel, 120);
                     }
                 }
@@ -396,6 +399,7 @@ final class Snapshot implements Section
                 'new_executable' => array_slice($newFiles, 0, 20) ?: null,
                 'changed_executable' => array_slice($changedFiles, 0, 20) ?: null,
                 'scan_truncated' => $truncated ?: null,
+                'git_skipped' => $gitProblem,
             ], fn ($v) => $v !== null);
             if ($entry !== []) {
                 $out[$name] = $entry;
@@ -409,12 +413,14 @@ final class Snapshot implements Section
      * How to run git safely in a repo owned by another user.
      *
      * Running git as root in a repo the site user controls would let that user's
-     * .git/config (core.fsmonitor, hooks…) execute commands as root. So git runs
-     * as the repo's owner, with repo-supplied programs disabled and no index writes.
+     * .git/config (core.fsmonitor, hooks, filters…) execute commands as root. So
+     * git never runs as root: it runs as the repo's owner, with repo-supplied
+     * programs disabled and no index writes. A .git that is a symlink, is owned
+     * by root, or whose owner differs from the release folder's is refused.
      *
-     * @return list<string>|null argv prefix, or null if git can't be run safely
+     * @return array{0: list<string>|null, 1: ?string} [argv prefix, reason it can't run]
      */
-    private function gitCommand(Context $ctx, string $release): ?array
+    private function gitCommand(Context $ctx, string $release): array
     {
         $git = [
             'git', '--no-optional-locks',
@@ -424,27 +430,37 @@ final class Snapshot implements Section
             '-C', $release,
         ];
         if ($ctx->fixtureMode) {
-            return $git;
+            return [$git, null];
+        }
+        $gitDir = "$release/.git";
+        if (is_link($gitDir) || !is_dir($gitDir)) {
+            return [null, '.git is not a plain directory'];
+        }
+        if (!function_exists('posix_getpwuid') || !function_exists('posix_geteuid')) {
+            return [null, 'posix extension missing'];
+        }
+        $ownerUid = @fileowner($gitDir);
+        $releaseUid = @fileowner($release);
+        $configUid = @fileowner("$gitDir/config");
+        if ($ownerUid === false || $ownerUid === 0) {
+            return [null, '.git is owned by root'];
+        }
+        if ($ownerUid !== $releaseUid || ($configUid !== false && $configUid !== $ownerUid)) {
+            return [null, 'release, .git and .git/config have different owners'];
         }
         $env = ['env', 'GIT_CONFIG_NOSYSTEM=1', 'GIT_CONFIG_GLOBAL=/dev/null', 'GIT_OPTIONAL_LOCKS=0', 'HOME=/nonexistent'];
-        if (!function_exists('posix_getpwuid') || !function_exists('posix_geteuid')) {
-            return null;
+        $euid = posix_geteuid();
+        if ($euid === $ownerUid) {
+            return [[...$env, ...$git], null];
         }
-        $ownerUid = @fileowner("$release/.git");
-        if ($ownerUid === false) {
-            return null;
-        }
-        if ($ownerUid === posix_geteuid()) {
-            return [...$env, ...$git];
-        }
-        if (posix_geteuid() !== 0) {
-            return null;
+        if ($euid !== 0) {
+            return [null, 'not running as root or as the repo owner'];
         }
         $owner = posix_getpwuid($ownerUid);
-        if ($owner === false || $ownerUid === 0) {
-            return null;
+        if ($owner === false) {
+            return [null, 'repo owner has no passwd entry'];
         }
-        return ['runuser', '-u', $owner['name'], '--', ...$env, ...$git];
+        return [['runuser', '-u', $owner['name'], '--', ...$env, ...$git], null];
     }
 
     /**

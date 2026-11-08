@@ -134,6 +134,17 @@ $runCollector = function (string $date) use ($base, $root, $tmp): array {
     return [$json, $raw];
 };
 
+// A FIFO must be refused without blocking (non-blocking open, then fstat on the handle).
+$fifo = "$tmp/fifo";
+posix_mkfifo($fifo, 0600);
+$t = microtime(true);
+check('FIFO is refused', LogWatch\SafeFile::read($fifo) === null);
+check('FIFO does not block', microtime(true) - $t < 2);
+check('device is refused', LogWatch\SafeFile::read('/dev/zero') === null);
+check('oversize file is refused', LogWatch\SafeFile::read(__FILE__, 10) === null);
+check('regular file is read', str_starts_with((string) LogWatch\SafeFile::read(__FILE__), '<?php'));
+unlink($fifo);
+
 // ---------------------------------------------------------------- run 1: baseline day
 
 [$o, $raw] = $runCollector('2026-11-07');

@@ -6,39 +6,54 @@ namespace LogWatch;
 
 /**
  * Reading files that a less-privileged user controls (home directories, site
- * storage) while running as root. A planted symlink to /dev/zero, a FIFO or a
- * huge file must not hang the collector or blow its memory.
+ * storage) while running as root. A planted symlink to /dev/zero, a FIFO, a
+ * huge file, or a path swapped between check and open must not hang the
+ * collector or blow its memory.
+ *
+ * Every check is made on the open handle (fstat), not on the path, so there is
+ * no gap between checking a file and reading it. The open is non-blocking, so
+ * a FIFO can't stall it.
  */
 final class SafeFile
 {
-    /** True when the path (after following links) is a regular file no bigger than $maxBytes. */
-    public static function isReadableRegular(string $path, int $maxBytes = PHP_INT_MAX): bool
+    /**
+     * Open a regular file for reading, or return null.
+     * @return resource|null
+     */
+    public static function open(string $path, int $maxBytes = PHP_INT_MAX)
     {
         $real = realpath($path);
-        if ($real === false || !is_file($real) || !is_readable($real)) {
-            return false;
+        if ($real === false) {
+            return null;
         }
-        $st = @stat($real);
+        // 'n' = O_NONBLOCK: opening a FIFO returns at once instead of waiting for a writer.
+        $h = @fopen($real, 'rbn');
+        if ($h === false) {
+            return null;
+        }
+        $st = fstat($h);
         // 0100000 = S_IFREG: a real file, not a device, FIFO or socket.
-        return $st !== false && ($st['mode'] & 0170000) === 0100000 && $st['size'] <= $maxBytes;
+        if ($st === false || ($st['mode'] & 0170000) !== 0100000 || $st['size'] > $maxBytes) {
+            fclose($h);
+            return null;
+        }
+        stream_set_blocking($h, true);
+        return $h;
     }
 
     /** Contents of a small regular file, or null when it isn't one. */
     public static function read(string $path, int $maxBytes = 1048576): ?string
     {
-        if (!self::isReadableRegular($path, $maxBytes)) {
+        $h = self::open($path, $maxBytes);
+        if ($h === null) {
             return null;
         }
-        $h = @fopen($path, 'rb');
-        if ($h === false) {
-            return null;
-        }
-        $data = (string) fread($h, $maxBytes);
+        $data = (string) stream_get_contents($h, $maxBytes);
         fclose($h);
         return $data;
     }
 
-    /** @return list<string> lines of a small regular file, or [] */
+    /** @return list<string> non-empty lines of a small regular file, or [] */
     public static function lines(string $path, int $maxBytes = 1048576): array
     {
         $data = self::read($path, $maxBytes);
@@ -50,5 +65,33 @@ final class SafeFile
     {
         $data = self::read($path, $maxBytes);
         return $data === null ? null : substr(hash('sha256', $data), 0, 16);
+    }
+
+    /**
+     * Lines of a regular file, read as plain text (never decompressed), with a
+     * bounded line length. When the file is larger than $tailBytes, only its
+     * end is read.
+     * @return \Generator<string>
+     */
+    public static function tailLines(string $path, int $tailBytes, int $maxLine = 65536): \Generator
+    {
+        $h = self::open($path);
+        if ($h === null) {
+            return;
+        }
+        try {
+            $size = (int) fstat($h)['size'];
+            if ($size > $tailBytes) {
+                fseek($h, $size - $tailBytes);
+                fgets($h, $maxLine); // skip the partial line
+            }
+            $read = 0;
+            while ($read < $tailBytes && ($line = fgets($h, $maxLine)) !== false) {
+                $read += strlen($line);
+                yield rtrim($line, "\r\n");
+            }
+        } finally {
+            fclose($h);
+        }
     }
 }
