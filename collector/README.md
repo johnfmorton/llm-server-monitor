@@ -38,8 +38,11 @@ Sites are discovered from `/etc/nginx/sites-enabled` and grouped by Forge site I
 sudo bin/logwatch-collect                          # yesterday (UTC)
 sudo bin/logwatch-collect --date=2026-11-07 --pretty
 sudo bin/logwatch-collect --no-state               # trial run: don't write state
+sudo bin/logwatch-collect --post=https://HUB/api/v1/summaries   # send to the hub
 bin/logwatch-collect --help
 ```
+
+With `--post`, the summary is sent with the token from `/etc/logwatch/token` (root, mode 600; issued by `php artisan logwatch:server-add` on the hub). It retries network errors, 5xx and 429 three times. If it still fails, the summary waits in `state/outbox/` and is sent before the next day's. The exit code is non-zero when today's send fails, so Forge's scheduler shows it.
 
 The secret goes in `/etc/logwatch/secret` (root, mode 600). It must be the same on every server. See the project plan.
 

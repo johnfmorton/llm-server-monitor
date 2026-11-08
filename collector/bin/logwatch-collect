@@ -18,6 +18,10 @@ declare(strict_types=1);
  *   --no-state           read state but don't write it (safe for trial runs)
  *   --only=a,b           only these sections (debugging; never writes state)
  *   --pretty             pretty-print JSON
+ *   --post=URL           send the summary to the hub instead of printing it
+ *                        (e.g. https://hub.example.ts.net/api/v1/summaries)
+ *   --token-file=PATH    hub API token (default: /etc/logwatch/token)
+ *   --retry-delays=5,30  seconds between send attempts
  *   --root=PATH          read files from a fixture tree and commands from PATH/_commands (tests)
  */
 
@@ -28,11 +32,12 @@ use LogWatch\CommandRunner;
 use LogWatch\Collector;
 use LogWatch\Context;
 use LogWatch\GeoLookup;
+use LogWatch\Poster;
 use LogWatch\State;
 
 umask(0077);
 
-$opt = getopt('', ['date:', 'server:', 'secret-file:', 'state-dir:', 'config:', 'no-state', 'only:', 'pretty', 'root:', 'help']);
+$opt = getopt('', ['date:', 'server:', 'secret-file:', 'state-dir:', 'config:', 'no-state', 'only:', 'pretty', 'root:', 'help', 'post:', 'token-file:', 'retry-delays:']);
 if (isset($opt['help'])) {
     fwrite(STDOUT, preg_replace('/^.*?\/\*\n|\*\/.*$/s', '', file_get_contents(__FILE__)));
     exit(0);
@@ -88,7 +93,32 @@ try {
 }
 
 $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR;
-if (isset($opt['pretty'])) {
-    $flags |= JSON_PRETTY_PRINT;
+
+if (!isset($opt['post'])) {
+    echo json_encode($result, $flags | (isset($opt['pretty']) ? JSON_PRETTY_PRINT : 0)), "\n";
+    exit(0);
 }
-echo json_encode($result, $flags), "\n";
+
+// Sending to the hub.
+$url = (string) $opt['post'];
+if (!preg_match('#^https?://#', $url)) {
+    $fail("--post must be an http(s) URL");
+}
+$tokenFile = $opt['token-file'] ?? '/etc/logwatch/token';
+if (!is_readable($tokenFile)) {
+    $fail("can't read token file $tokenFile");
+}
+if (!$fixture && (fileperms($tokenFile) & 0077) !== 0) {
+    fwrite(STDERR, "logwatch-collect: warning: $tokenFile is readable by group/others; chmod 600 it\n");
+}
+$token = trim((string) file_get_contents($tokenFile));
+$delays = array_map('intval', array_filter(explode(',', $opt['retry-delays'] ?? '5,30'), 'strlen'));
+$writeState = !isset($opt['no-state']) && $only === null;
+$poster = new Poster($url, $token, $writeState ? ($opt['state-dir'] ?? '/etc/logwatch/state') . '/outbox' : null, $delays);
+
+foreach ($poster->flushOutbox($date) as $r) {
+    printf("outbox %s: %s (HTTP %d) %s\n", $r['date'], $r['ok'] ? 'sent' : 'still failing', $r['status'], $r['message']);
+}
+$r = $poster->send($date, json_encode($result, $flags));
+printf("%s %s: %s (HTTP %d) %s\n", $result['server'], $date, $r['ok'] ? 'sent' : 'FAILED', $r['status'], $r['message']);
+exit($r['ok'] ? 0 : 1);

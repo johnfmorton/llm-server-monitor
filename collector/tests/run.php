@@ -272,5 +272,61 @@ check('ufw rule added', $st2['firewall_rules']['added'] === ['6379 | ALLOW | Any
 check('cpu delta since last run', $st2['processes']['since_previous_run'] === true && $st2['processes']['top_cpu'][0]['cpu_seconds'] === 0, $st2['processes']['top_cpu'][0]);
 check('seen paths not new again', $o2['nginx']['shared_access_log']['new_paths']['new_total'] === 0, $o2['nginx']['shared_access_log']['new_paths']);
 
+// ---------------------------------------------------------------- posting to a hub
+
+$hubDir = "$tmp/hub";
+mkdir($hubDir);
+file_put_contents("$tmp/token", "lw_test_token\n");
+$port = 18000 + random_int(0, 999);
+$hub = proc_open(
+    [PHP_BINARY, '-S', "127.0.0.1:$port", "$base/fake-hub.php"],
+    [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']],
+    $pipes,
+    null,
+    ['LW_HUB_DIR' => $hubDir],
+);
+for ($i = 0; $i < 50 && !@fsockopen('127.0.0.1', $port); $i++) {
+    usleep(100000);
+}
+$post = function (string $date, string $tokenFile, bool $state = true) use ($base, $root, $tmp, $port): array {
+    $cmd = sprintf(
+        'php %s --root=%s --state-dir=%s --secret-file=%s --date=%s --server=test --post=%s --token-file=%s --retry-delays=0,0%s 2>&1',
+        escapeshellarg("$base/../bin/logwatch-collect"), escapeshellarg($root), escapeshellarg("$tmp/state"),
+        escapeshellarg("$base/fixtures/secret"), $date, escapeshellarg("http://127.0.0.1:$port/api/v1/summaries"),
+        escapeshellarg($tokenFile), $state ? '' : ' --no-state'
+    );
+    exec($cmd, $out, $code);
+    return [$code, implode("\n", $out)];
+};
+$requests = function () use ($hubDir): array {
+    $lines = @file("$hubDir/requests.jsonl", FILE_IGNORE_NEW_LINES) ?: [];
+    @unlink("$hubDir/requests.jsonl");
+    return array_map(fn ($l) => json_decode($l, true), $lines);
+};
+
+file_put_contents("$hubDir/mode", '503');
+[$code, $out] = $post('2026-11-09', "$tmp/token");
+$reqs = $requests();
+check('hub down: run fails', $code === 1 && str_contains($out, 'FAILED (HTTP 503)'), $out);
+check('hub down: retried 3 times', count($reqs) === 3, count($reqs));
+check('hub down: kept in outbox', is_file("$tmp/state/outbox/2026-11-09.json"));
+check('outbox file is private', (fileperms("$tmp/state/outbox/2026-11-09.json") & 0077) === 0);
+check('sent with bearer token', ($reqs[0]['auth'] ?? '') === 'Bearer lw_test_token', $reqs[0] ?? null);
+
+file_put_contents("$hubDir/mode", '202');
+[$code, $out] = $post('2026-11-10', "$tmp/token");
+$reqs = $requests();
+check('hub back: outbox flushed first, then today', $code === 0 && array_column($reqs, 'date') === ['2026-11-09', '2026-11-10'], [$out, $reqs]);
+check('hub back: outbox emptied', !is_file("$tmp/state/outbox/2026-11-09.json"));
+
+file_put_contents("$tmp/bad-token", "lw_wrong\n");
+[$code, $out] = $post('2026-11-11', "$tmp/bad-token", false);
+$reqs = $requests();
+check('bad token: not retried', $code === 1 && count($reqs) === 1 && str_contains($out, 'HTTP 401'), [$out, count($reqs)]);
+check('--no-state: nothing kept on failure', !is_file("$tmp/state/outbox/2026-11-11.json"));
+
+proc_terminate($hub);
+proc_close($hub);
+
 echo "\n$passes passed, $failures failed\n";
 exit($failures > 0 ? 1 : 0);
