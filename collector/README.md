@@ -1,6 +1,6 @@
 # LogWatch collector
 
-Summarises one UTC day of a Forge server's logs and state as a single JSON document (a few KB). Phase 1 only prints JSON; posting it to the hub comes later.
+Summarises one UTC day of a Forge server's logs and state as a single JSON document (a few KB). By default it prints the JSON; with `--post` it sends it to the hub.
 
 Plain PHP 8.4+ with no dependencies. It must run as root, because it reads auth.log, the journal, fail2ban.log and other users' crontabs and keys.
 
