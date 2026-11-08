@@ -1,0 +1,6 @@
+{"PRIORITY":"4","MESSAGE":"[UFW BLOCK] IN=eth0 SRC=192.0.2.10 DPT=22","_TRANSPORT":"kernel","SYSLOG_IDENTIFIER":"kernel"}
+{"PRIORITY":"4","MESSAGE":"[UFW BLOCK] IN=eth0 SRC=192.0.2.11 DPT=23","_TRANSPORT":"kernel","SYSLOG_IDENTIFIER":"kernel"}
+{"PRIORITY":"3","MESSAGE":"Out of memory: Killed process 4242 (php-fpm8.4) total-vm:1024kB","_TRANSPORT":"kernel","SYSLOG_IDENTIFIER":"kernel"}
+{"PRIORITY":"4","MESSAGE":"Connection from 198.51.100.90 rejected","SYSLOG_IDENTIFIER":"redis-server"}
+{"PRIORITY":"4","MESSAGE":"Connection from 198.51.100.91 rejected","SYSLOG_IDENTIFIER":"redis-server"}
+{"PRIORITY":"2","MESSAGE":[72,105],"SYSLOG_IDENTIFIER":"weird"}

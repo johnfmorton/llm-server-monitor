@@ -1,0 +1,2 @@
+Filesystem      Inodes  IUsed   IFree IUse% Mounted on
+/dev/vda1      6400000 600000 5800000   10% /

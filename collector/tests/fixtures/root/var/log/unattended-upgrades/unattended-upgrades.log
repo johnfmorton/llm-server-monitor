@@ -1,0 +1,4 @@
+2026-11-07 06:10:01,100 INFO Starting unattended upgrades script
+2026-11-07 06:10:05,100 INFO Packages that will be upgraded: libssl3t64 openssl
+2026-11-07 06:11:05,100 ERROR dpkg returned an error for package foo at 192.0.2.200
+2026-11-07 06:12:01,100 INFO All upgrades installed

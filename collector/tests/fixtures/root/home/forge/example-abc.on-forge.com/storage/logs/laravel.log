@@ -1,0 +1,11 @@
+[2026-11-06 23:00:00] production.ERROR: Too early {"exception":"[object] (RuntimeException(code: 0): Too early at /home/forge/x/app.php:1)"}
+[2026-11-07 09:00:00] production.DEBUG: Booting
+[2026-11-07 09:00:01] production.INFO: User jane@example.com logged in from 203.0.113.60
+[2026-11-07 09:30:00] production.ERROR: SQLSTATE[HY000] [2002] Connection refused (Connection: mysql, SQL: select * from users where email = bob@example.com) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 2002): SQLSTATE[HY000] [2002] Connection refused at /home/forge/example-abc.on-forge.com/releases/100/vendor/laravel/framework/src/Illuminate/Database/Connection.php:825)
+[stacktrace]
+#0 /home/forge/example-abc.on-forge.com/releases/100/vendor/laravel/framework/src/Illuminate/Database/Connection.php(779): Illuminate\\Database\\Connection->runQueryCallback()
+#1 {main}
+"} 
+[2026-11-07 09:31:00] production.ERROR: SQLSTATE[HY000] [2002] Connection refused (Connection: mysql, SQL: select * from users where email = carol@example.com) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 2002): SQLSTATE[HY000] [2002] Connection refused at /x:1)"}
+[2026-11-07 10:00:00] production.WARNING: Slow request 4500ms
+[2026-11-07 10:05:00] production.CRITICAL: Payment webhook signature invalid sk_fake_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789

@@ -1,0 +1,9 @@
+Status: active
+
+To                         Action      From
+--                         ------      ----
+22                         ALLOW       Anywhere
+80                         ALLOW       Anywhere
+443                        ALLOW       Anywhere
+3306                       ALLOW       198.51.100.5
+22 (v6)                    ALLOW       Anywhere (v6)

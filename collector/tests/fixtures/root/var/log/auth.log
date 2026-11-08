@@ -1,0 +1,14 @@
+2026-11-06T23:59:59.000000+00:00 web1 sshd-session[100]: Accepted publickey for forge from 203.0.113.50 port 50000 ssh2: ED25519 SHA256:outsidewindowkey
+2026-11-07T08:00:01.123456+00:00 web1 sshd-session[101]: Accepted publickey for forge from 100.101.102.103 port 51000 ssh2: ED25519 SHA256:abcTailnetKeyFingerprint
+2026-11-07T09:15:00.000000+00:00 web1 sshd-session[102]: Accepted publickey for root from 198.51.100.7 port 52000 ssh2: ED25519 SHA256:10drkYVFlmQFGiXMd05vONaEEFco01R5vivAFOnWwrc
+2026-11-07T10:00:00.000000+00:00 web1 sshd-session[103]: Invalid user admin from 203.0.113.9 port 40000
+2026-11-07T10:00:01.000000+00:00 web1 sshd-session[103]: Connection closed by invalid user admin 203.0.113.9 port 40000 [preauth]
+2026-11-07T10:00:02.000000+00:00 web1 sshd-session[104]: Invalid user oracle from 203.0.113.9 port 40001
+2026-11-07T10:00:03.000000+00:00 web1 sshd-session[105]: Connection closed by authenticating user root 203.0.113.10 port 40002 [preauth]
+2026-11-07T10:00:04.000000+00:00 web1 sshd-session[106]: Failed password for invalid user test from 2001:db8::5 port 40003 ssh2
+2026-11-07T11:00:00.000000+00:00 web1 sudo:    forge : TTY=pts/0 ; PWD=/home/forge ; USER=root ; COMMAND=/usr/bin/apt-get update
+2026-11-07T11:00:05.000000+00:00 web1 sudo:    forge : TTY=pts/0 ; PWD=/home/forge ; USER=root ; COMMAND=/usr/bin/apt-get upgrade -y
+2026-11-07T11:05:00.000000+00:00 web1 sudo: pam_unix(sudo:auth): authentication failure; logname=forge uid=1000 euid=0 tty=/dev/pts/0 ruser=forge rhost=  user=forge
+2026-11-07T12:00:00.000000+00:00 web1 useradd[200]: new user: name=backdoor, UID=1001, GID=1001, home=/home/backdoor, shell=/bin/bash, from=/dev/pts/0
+2026-11-07T12:00:01.000000+00:00 web1 usermod[201]: add 'backdoor' to group 'sudo'
+2026-11-08T00:00:01.000000+00:00 web1 sshd-session[300]: Invalid user late from 203.0.113.99 port 40000

@@ -1,0 +1,3 @@
+2026-11-07 19:20:50 [web.ERROR] [yii\web\HttpException:400] Submitted data was tampered. {"trace":["#0 [internal function]: foo"],"memory":123}
+2026-11-07 19:21:50 [web.INFO] [application] Request handled {"memory":1}
+2026-11-07 19:22:50 [web.WARNING] [craft\web\Request::_validateCsrf] Bad CSRF token

@@ -1,0 +1,2 @@
+Sun 2026-11-08 00:00:00 UTC 1h left Sat 2026-11-07 00:00:00 UTC 23h ago logrotate.timer logrotate.service
+Sun 2026-11-08 06:00:00 UTC 7h left Sat 2026-11-07 06:00:00 UTC 17h ago apt-daily-upgrade.timer apt-daily-upgrade.service

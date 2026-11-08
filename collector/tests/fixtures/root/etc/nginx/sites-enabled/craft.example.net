@@ -1,0 +1,6 @@
+server {
+    listen 443 ssl;
+    server_name craft.example.net;
+    root /home/forge/craftsite-xyz.on-forge.com/current/web;
+    include forge-conf/1002/site.conf;
+}

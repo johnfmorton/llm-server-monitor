@@ -1,0 +1,1 @@
+horizon.service loaded failed failed Laravel Horizon

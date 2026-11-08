@@ -1,0 +1,1 @@
+forge ALL=(root) NOPASSWD: /usr/sbin/service php8.4-fpm reload

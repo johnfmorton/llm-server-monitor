@@ -1,0 +1,1 @@
+* * * * * forge php /home/forge/example-abc.on-forge.com/current/artisan schedule:run

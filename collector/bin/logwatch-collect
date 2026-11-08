@@ -1,0 +1,94 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/*
+ * LogWatch collector: summarises one day of a server's logs and state as JSON.
+ *
+ *   sudo logwatch-collect                       # yesterday (UTC), prints JSON
+ *   sudo logwatch-collect --date=2026-11-07 --pretty
+ *
+ * Options:
+ *   --date=YYYY-MM-DD    UTC day to summarise (default: yesterday)
+ *   --server=NAME        server name in the output (default: hostname)
+ *   --secret-file=PATH   HMAC secret (default: /etc/logwatch/secret)
+ *   --state-dir=PATH     local state (default: /etc/logwatch/state)
+ *   --config=PATH        optional JSON config (default: /etc/logwatch/config.json)
+ *   --no-state           read state but don't write it (safe for trial runs)
+ *   --only=a,b           only these sections (debugging; never writes state)
+ *   --pretty             pretty-print JSON
+ *   --root=PATH          read files from a fixture tree and commands from PATH/_commands (tests)
+ */
+
+require __DIR__ . '/../src/bootstrap.php';
+
+use LogWatch\Anon;
+use LogWatch\CommandRunner;
+use LogWatch\Collector;
+use LogWatch\Context;
+use LogWatch\GeoLookup;
+use LogWatch\State;
+
+umask(0077);
+
+$opt = getopt('', ['date:', 'server:', 'secret-file:', 'state-dir:', 'config:', 'no-state', 'only:', 'pretty', 'root:', 'help']);
+if (isset($opt['help'])) {
+    fwrite(STDOUT, preg_replace('/^.*?\/\*\n|\*\/.*$/s', '', file_get_contents(__FILE__)));
+    exit(0);
+}
+
+$fail = function (string $msg): never {
+    fwrite(STDERR, "logwatch-collect: $msg\n");
+    exit(1);
+};
+
+$root = rtrim($opt['root'] ?? '', '/');
+$fixture = $root !== '';
+
+$date = $opt['date'] ?? gmdate('Y-m-d', time() - 86400);
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || strtotime("$date UTC") === false) {
+    $fail("bad --date: $date");
+}
+$start = strtotime("$date 00:00:00 UTC");
+$end = $start + 86400;
+
+$secretFile = $opt['secret-file'] ?? '/etc/logwatch/secret';
+if (!is_readable($secretFile)) {
+    $fail("can't read secret file $secretFile (run as root, or create it: openssl rand -hex 32)");
+}
+if (!$fixture && (fileperms($secretFile) & 0077) !== 0) {
+    fwrite(STDERR, "logwatch-collect: warning: $secretFile is readable by group/others; chmod 600 it\n");
+}
+$secret = trim((string) file_get_contents($secretFile));
+
+$configFile = $opt['config'] ?? '/etc/logwatch/config.json';
+$config = is_readable($configFile) ? (json_decode((string) file_get_contents($configFile), true) ?: []) : [];
+
+$geo = GeoLookup::tryCreate($root . ($config['geoip_dir'] ?? '/var/lib/GeoIP'));
+$config['geo_available'] = $geo !== null;
+
+try {
+    $only = isset($opt['only']) ? array_map('trim', explode(',', $opt['only'])) : null;
+    $ctx = new Context(
+        root: $root,
+        date: $date,
+        start: $start,
+        end: $end,
+        anon: new Anon($secret, $geo),
+        cmd: new CommandRunner($fixture ? "$root/_commands" : null),
+        state: new State($opt['state-dir'] ?? '/etc/logwatch/state', !isset($opt['no-state']) && $only === null, $date),
+        fixtureMode: $fixture,
+        config: $config,
+    );
+    $server = $opt['server'] ?? ($config['server'] ?? gethostname());
+    $result = (new Collector($ctx, (string) $server))->run($only);
+} catch (\Throwable $e) {
+    $fail($e->getMessage());
+}
+
+$flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR;
+if (isset($opt['pretty'])) {
+    $flags |= JSON_PRETTY_PRINT;
+}
+echo json_encode($result, $flags), "\n";

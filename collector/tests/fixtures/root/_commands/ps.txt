@@ -1,0 +1,5 @@
+root                                   120 systemd
+www-data                              5000 php-fpm8.4
+www-data                              3000 php-fpm8.4
+forge                                90000 xmrig
+mysql                                40000 mysqld

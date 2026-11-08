@@ -1,0 +1,4 @@
+{"PRIORITY":"5","MESSAGE":"horizon.service: Failed with result 'exit-code'.","UNIT":"horizon.service"}
+{"PRIORITY":"6","MESSAGE":"horizon.service: Scheduled restart job, restart counter is at 3.","UNIT":"horizon.service"}
+{"PRIORITY":"6","MESSAGE":"horizon.service: Scheduled restart job, restart counter is at 5.","UNIT":"horizon.service"}
+{"PRIORITY":"6","MESSAGE":"Started session-12.scope - Session 12 of User forge."}
