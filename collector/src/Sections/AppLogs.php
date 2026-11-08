@@ -6,6 +6,7 @@ namespace LogWatch\Sections;
 
 use LogWatch\Context;
 use LogWatch\LogReader;
+use LogWatch\SafeFile;
 use LogWatch\Tally;
 
 /**
@@ -72,7 +73,10 @@ final class AppLogs implements Section
 
         foreach (array_keys($logDirs) as $logDir) {
             foreach (glob("$logDir/*.log") ?: [] as $file) {
-                if (!$ctx->mayCover($file)) {
+                // This folder belongs to the site user, so a "log" could be a planted
+                // symlink to a device or a file elsewhere. Only read real files that live here.
+                $real = realpath($file);
+                if ($real === false || dirname($real) !== $logDir || !SafeFile::isReadableRegular($real) || !$ctx->mayCover($file)) {
                     continue;
                 }
                 $channel = (string) preg_replace('/-\d{4}-\d{2}-\d{2}$/', '', basename($file, '.log'));

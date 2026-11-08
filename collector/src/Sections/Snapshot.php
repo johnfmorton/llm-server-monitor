@@ -6,6 +6,7 @@ namespace LogWatch\Sections;
 
 use LogWatch\Anon;
 use LogWatch\Context;
+use LogWatch\SafeFile;
 use LogWatch\Tally;
 
 /**
@@ -16,6 +17,7 @@ final class Snapshot implements Section
 {
     private const WEBSHELL_EXT = '/\.(php\d?|phtml|phar|pht)$/i';
     private const MAX_WALK = 50000;
+    private const WALK_SECONDS = 20;
 
     /** Data to persist for tomorrow's diff (written by the Collector). */
     public array $data = [];
@@ -128,12 +130,16 @@ final class Snapshot implements Section
         $keys = [];
         foreach ($files as $f) {
             $p = $ctx->path($f);
-            if (!is_file($p)) {
+            $hash = SafeFile::hash($p);
+            if ($hash === null) {
+                if (file_exists($p) || is_link($p)) {
+                    $hashes[$f] = 'unreadable-or-not-a-regular-file';
+                }
                 continue;
             }
-            $hashes[$f] = substr(hash_file('sha256', $p), 0, 16);
+            $hashes[$f] = $hash;
             if (str_ends_with($f, 'authorized_keys')) {
-                foreach (file($p, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+                foreach (SafeFile::lines($p) as $line) {
                     $k = self::fingerprint($line);
                     if ($k !== null) {
                         $keys["$f {$k['fp']}"] = Anon::clean($k['comment']);
@@ -250,8 +256,8 @@ final class Snapshot implements Section
         $hashes = [];
         foreach ($files as $f) {
             $p = $ctx->path($f);
-            if (is_file($p)) {
-                $hashes[$f] = substr(hash_file('sha256', $p), 0, 16);
+            if (file_exists($p) || is_link($p)) {
+                $hashes[$f] = SafeFile::hash($p) ?? 'unreadable-or-not-a-regular-file';
             }
         }
         ksort($hashes);
@@ -304,9 +310,15 @@ final class Snapshot implements Section
             if ($release === false || !is_dir("$release/.git")) {
                 continue;
             }
+            $git = $this->gitCommand($ctx, $release);
+            if ($git === null) {
+                continue;
+            }
             $checked++;
             $releaseId = basename($release);
-            $git = ['git', '-c', 'safe.directory=*', '-C', $release];
+
+            $r = $ctx->cmd->run("git-head-$id", [...$git, 'rev-parse', 'HEAD']);
+            $head = substr(trim($r['out'] ?? ''), 0, 12);
 
             $modified = [];
             $r = $ctx->cmd->run("git-status-$id", [...$git, 'status', '--porcelain=v1', '--untracked-files=no']);
@@ -323,15 +335,21 @@ final class Snapshot implements Section
                 $modified[] = trim(substr($l, 0, 2)) . ' ' . $ctx->anon->scrub($path, 120);
             }
 
+            // Our own record of every executable file in the webroot, by content hash.
+            // Git can be fooled by anyone who can write to the repo (commit the shell,
+            // or mark it assume-unchanged); this record can't.
             $untracked = [];
+            $files = [];
+            $truncated = false;
             $webroot = $site['webroot'] ?? 'public';
             $webDir = $webroot === '' ? $release : "$release/$webroot";
             if (is_dir($webDir)) {
                 $r = $ctx->cmd->run("git-ls-files-$id", [...$git, 'ls-files', '--', $webroot === '' ? '.' : $webroot]);
                 $tracked = array_flip(preg_split('/\R/', trim($r['out'] ?? '')));
                 $prefix = strlen($release) + 1;
-                foreach ($this->walk($webDir) as $file) {
+                foreach ($this->walk($webDir, $truncated) as $file) {
                     $rel = substr($file, $prefix);
+                    $files[$rel] = SafeFile::hash($file, 5 * 1048576) ?? 'unreadable';
                     if (!isset($tracked[$rel])) {
                         $untracked[] = $ctx->anon->scrub($rel, 120);
                     }
@@ -339,27 +357,45 @@ final class Snapshot implements Section
             }
             sort($modified);
             sort($untracked);
+            ksort($files);
 
             $name = $site['name'];
             $before = $prev[$name] ?? null;
             $sameRelease = $before !== null && ($before['release'] ?? null) === $releaseId;
+            $known = $sameRelease ? ($before['files'] ?? []) : [];
+            $newFiles = [];
+            $changedFiles = [];
+            if ($sameRelease) {
+                foreach ($files as $rel => $hash) {
+                    if (!isset($known[$rel])) {
+                        $newFiles[] = $ctx->anon->scrub($rel, 120);
+                    } elseif ($known[$rel] !== $hash) {
+                        $changedFiles[] = $ctx->anon->scrub($rel, 120);
+                    }
+                }
+            }
             $this->data['webroots'][$name] = [
                 'release' => $releaseId,
-                // Within one release, keep the first-seen lists so "new" stays meaningful.
-                'modified' => $sameRelease ? array_values(array_unique(array_merge($before['modified'], $modified))) : $modified,
-                'untracked' => $sameRelease ? array_values(array_unique(array_merge($before['untracked'], $untracked))) : $untracked,
+                'head' => $sameRelease ? ($before['head'] ?? $head) : $head,
+                'modified' => $sameRelease ? array_values(array_unique(array_merge($before['modified'] ?? [], $modified))) : $modified,
+                // Keep the first-seen hashes for the life of the release so later changes stay visible.
+                'files' => $sameRelease ? $known + $files : $files,
             ];
+
             // Full lists only when this release is first seen (first run or a deploy);
             // after that, counts plus anything that appeared since, to keep the output small.
             $firstLook = !$sameRelease;
             $entry = array_filter([
                 'release_changed' => $before !== null && !$sameRelease ? true : null,
+                'head_moved_within_release' => $sameRelease && $head !== '' && $head !== ($before['head'] ?? $head) ? true : null,
                 'modified_tracked' => $firstLook ? (array_slice($modified, 0, 20) ?: null) : null,
                 'untracked_executable' => $firstLook ? (array_slice($untracked, 0, 20) ?: null) : null,
                 'modified_count' => !$firstLook && $modified ? count($modified) : null,
                 'untracked_count' => !$firstLook && $untracked ? count($untracked) : null,
-                'new_modified' => $sameRelease ? (array_values(array_diff($modified, $before['modified'])) ?: null) : null,
-                'new_untracked' => $sameRelease ? (array_values(array_diff($untracked, $before['untracked'])) ?: null) : null,
+                'new_modified' => $sameRelease ? (array_values(array_diff($modified, $before['modified'] ?? [])) ?: null) : null,
+                'new_executable' => array_slice($newFiles, 0, 20) ?: null,
+                'changed_executable' => array_slice($changedFiles, 0, 20) ?: null,
+                'scan_truncated' => $truncated ?: null,
             ], fn ($v) => $v !== null);
             if ($entry !== []) {
                 $out[$name] = $entry;
@@ -369,28 +405,92 @@ final class Snapshot implements Section
         return ['sites_checked' => $checked, 'findings' => $out];
     }
 
-    /** Executable-looking files under a webroot, following symlinks (public/storage). */
-    private function walk(string $dir): \Generator
+    /**
+     * How to run git safely in a repo owned by another user.
+     *
+     * Running git as root in a repo the site user controls would let that user's
+     * .git/config (core.fsmonitor, hooks…) execute commands as root. So git runs
+     * as the repo's owner, with repo-supplied programs disabled and no index writes.
+     *
+     * @return list<string>|null argv prefix, or null if git can't be run safely
+     */
+    private function gitCommand(Context $ctx, string $release): ?array
     {
-        $seen = 0;
-        try {
-            $it = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS),
-                \RecursiveIteratorIterator::LEAVES_ONLY,
-                \RecursiveIteratorIterator::CATCH_GET_CHILD
-            );
-            $it->setMaxDepth(12);
-            foreach ($it as $f) {
-                if (++$seen > self::MAX_WALK) {
+        $git = [
+            'git', '--no-optional-locks',
+            '-c', 'core.fsmonitor=false',
+            '-c', 'core.hooksPath=/dev/null',
+            '-c', 'core.untrackedCache=false',
+            '-C', $release,
+        ];
+        if ($ctx->fixtureMode) {
+            return $git;
+        }
+        $env = ['env', 'GIT_CONFIG_NOSYSTEM=1', 'GIT_CONFIG_GLOBAL=/dev/null', 'GIT_OPTIONAL_LOCKS=0', 'HOME=/nonexistent'];
+        if (!function_exists('posix_getpwuid') || !function_exists('posix_geteuid')) {
+            return null;
+        }
+        $ownerUid = @fileowner("$release/.git");
+        if ($ownerUid === false) {
+            return null;
+        }
+        if ($ownerUid === posix_geteuid()) {
+            return [...$env, ...$git];
+        }
+        if (posix_geteuid() !== 0) {
+            return null;
+        }
+        $owner = posix_getpwuid($ownerUid);
+        if ($owner === false || $ownerUid === 0) {
+            return null;
+        }
+        return ['runuser', '-u', $owner['name'], '--', ...$env, ...$git];
+    }
+
+    /**
+     * Executable-looking files under a webroot. Follows symlinks (public/storage
+     * points at user uploads), but never visits a directory twice, counts every
+     * entry, and stops at a node and time budget, so a planted symlink loop or a
+     * huge tree can't stall the run. Stopping early is reported, not hidden.
+     */
+    private function walk(string $dir, bool &$truncated): \Generator
+    {
+        $deadline = microtime(true) + self::WALK_SECONDS;
+        $visited = [];
+        $nodes = 0;
+        $stack = [[$dir, 0]];
+        while ($stack !== []) {
+            [$d, $depth] = array_pop($stack);
+            $real = realpath($d);
+            if ($real === false || isset($visited[$real])) {
+                continue;
+            }
+            $visited[$real] = true;
+            $h = @opendir($d);
+            if ($h === false) {
+                continue;
+            }
+            while (($e = readdir($h)) !== false) {
+                if ($e === '.' || $e === '..') {
+                    continue;
+                }
+                if (++$nodes > self::MAX_WALK || microtime(true) > $deadline) {
+                    closedir($h);
+                    $truncated = true;
                     return;
                 }
-                if (preg_match(self::WEBSHELL_EXT, $f->getFilename())) {
-                    // Report the path as it appears under the webroot, not the symlink target.
-                    yield $f->getPathname();
+                $p = "$d/$e";
+                if (is_dir($p)) {
+                    if ($depth < 12) {
+                        $stack[] = [$p, $depth + 1];
+                    } else {
+                        $truncated = true;
+                    }
+                } elseif (preg_match(self::WEBSHELL_EXT, $e)) {
+                    yield $p;
                 }
             }
-        } catch (\Throwable) {
-            return;
+            closedir($h);
         }
     }
 

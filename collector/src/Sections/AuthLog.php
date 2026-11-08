@@ -7,6 +7,7 @@ namespace LogWatch\Sections;
 use LogWatch\Anon;
 use LogWatch\Context;
 use LogWatch\LogReader;
+use LogWatch\SafeFile;
 use LogWatch\Syslog;
 use LogWatch\Tally;
 
@@ -157,7 +158,7 @@ final class AuthLog implements Section
         $labels = [];
         $files = array_merge(['/root/.ssh/authorized_keys'], $ctx->glob('/home/*/.ssh/authorized_keys'));
         foreach ($files as $f) {
-            foreach (@file($ctx->path($f), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+            foreach (SafeFile::lines($ctx->path($f)) as $line) {
                 $k = Snapshot::fingerprint($line);
                 if ($k !== null && !isset($labels[$k['fp']])) {
                     $labels[$k['fp']] = Anon::clean($k['comment'] !== '' ? $k['comment'] : '(no comment)');

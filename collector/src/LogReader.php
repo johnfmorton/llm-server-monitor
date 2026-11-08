@@ -6,6 +6,8 @@ namespace LogWatch;
 
 final class LogReader
 {
+    private const MAX_LINE = 65536;
+
     /**
      * The current file plus rotated siblings (.1, .2.gz, …) that may hold lines
      * inside the window, newest first. Stops at the first file last written
@@ -50,10 +52,11 @@ final class LogReader
                 $size = (int) @filesize($file);
                 if ($size > $tailBytes) {
                     gzseek($h, $size - $tailBytes);
-                    gzgets($h); // skip the partial line
+                    gzgets($h, self::MAX_LINE); // skip the partial line
                 }
             }
-            while (($line = gzgets($h)) !== false) {
+            // Bounded reads: a file with no newlines can't pull gigabytes into one string.
+            while (($line = gzgets($h, self::MAX_LINE)) !== false) {
                 yield rtrim($line, "\r\n");
             }
         } finally {
