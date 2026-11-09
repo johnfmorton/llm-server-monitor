@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlertController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ServerDayController;
 use App\Http\Controllers\SessionController;
@@ -18,5 +19,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/servers/{server:name}/days/{date}/summary.json', [ServerDayController::class, 'raw'])
         ->where('date', '\d{4}-\d{2}-\d{2}')
         ->name('server-days.raw');
+    Route::post('/alerts/{alert}/acknowledge', [AlertController::class, 'acknowledge'])->name('alerts.acknowledge');
     Route::post('/logout', [SessionController::class, 'destroy'])->name('logout');
 });

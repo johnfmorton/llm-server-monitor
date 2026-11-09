@@ -156,5 +156,5 @@ Prune summaries after 30 days, and keep reviews, rule hits and alerts for 90.
 - Decided: no separate triage model; Sonnet reviews every summary.
 - Decided: per-site access logs stay off for now. Start with existing logs plus the state snapshot, and turn on access logs per site only if a site needs it.
 - Which sites, if any, deserve access logs? Revisit after the tuning week.
-- Email provider (Postmark, SES or Forge's existing mail setup).
+- Decided: alert email goes through Mailgun (Laravel's `mailgun` mailer). One email per server-day batch of new alerts; nothing is emailed in silent mode or without a recipient.
 - Should the weekly digest come by email, or live only on the dashboard? Proposed: dashboard only during the silent-mode week, then decide.

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'is_client', 'notes'])]
+#[Fillable(['name', 'is_client', 'notes', 'ssh_allowlist', 'known_failed_units'])]
 #[Hidden(['token_hash'])]
 class Server extends Model
 {
@@ -27,6 +27,8 @@ class Server extends Model
         return [
             'is_client' => 'boolean',
             'last_report_at' => 'datetime',
+            'ssh_allowlist' => 'array',
+            'known_failed_units' => 'array',
         ];
     }
 

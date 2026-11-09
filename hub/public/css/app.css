@@ -63,6 +63,11 @@ a.cell:hover { filter: brightness(1.12); }
 .item--low, .item--info { border-left-color: var(--pending); }
 .badge { display: inline-block; padding: 0 .5rem; border-radius: 999px; color: #fff; font-size: .8rem; font-weight: 600; text-transform: uppercase; }
 .badge--ok { background: var(--ok); } .badge--watch { background: var(--watch); } .badge--alert { background: var(--alert); }
+.badge--failed { background: var(--pending); }
+.evidence { margin: .35rem 0 0; padding-left: 1.1rem; font-size: .9rem; overflow-wrap: anywhere; }
+.inline-form { margin: .4rem 0 0; }
+.inline-form button { font: inherit; font-size: .85rem; padding: .2rem .7rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--text); cursor: pointer; }
+.notice { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: .5rem .8rem; }
 
 .login { max-width: 340px; margin: 3rem auto; display: grid; gap: .4rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.5rem; }
 .login input[type=email], .login input[type=password] { font: inherit; padding: .5rem .6rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--text); }

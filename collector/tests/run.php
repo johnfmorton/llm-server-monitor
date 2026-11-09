@@ -131,6 +131,12 @@ $runCollector = function (string $date) use ($base, $root, $tmp): array {
         echo "Collector failed (exit $code):\n$raw\n";
         exit(1);
     }
+    // LOGWATCH_DUMP_DIR=... saves each run's output, e.g. to refresh the hub's test fixtures.
+    if (($dump = getenv('LOGWATCH_DUMP_DIR')) !== false && $dump !== '') {
+        @mkdir($dump, 0700, true);
+        $n = count(glob("$dump/run-*.json") ?: []) + 1;
+        file_put_contents("$dump/run-$n-$date.json", json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    }
     return [$json, $raw];
 };
 

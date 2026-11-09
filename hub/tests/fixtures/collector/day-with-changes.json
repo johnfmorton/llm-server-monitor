@@ -1,0 +1,354 @@
+{
+    "schema": 1,
+    "collector_version": "0.1.0",
+    "server": "test",
+    "date": "2026-11-08",
+    "window": {
+        "start": "2026-11-08T00:00:00+00:00",
+        "end": "2026-11-09T00:00:00+00:00"
+    },
+    "generated_at": "2026-11-08T19:41:13+00:00",
+    "sites": [
+        {
+            "name": "example.com",
+            "id": "1001",
+            "domains": 2,
+            "access_log": false
+        },
+        {
+            "name": "craft.example.net",
+            "id": "1002",
+            "domains": 1,
+            "access_log": false
+        }
+    ],
+    "auth": {
+        "lines_in_window": 1,
+        "ssh": {
+            "logins": [],
+            "logins_from_outside_tailnet": 0,
+            "failed": {
+                "invalid_user": 1,
+                "bad_auth": 0,
+                "preauth_disconnect": 0,
+                "max_auth_exceeded": 0,
+                "total": 1,
+                "unique_sources": 1,
+                "top_sources": [
+                    {
+                        "ip": "2888044ec83d",
+                        "scope": "public",
+                        "count": 1
+                    }
+                ],
+                "top_usernames": [
+                    {
+                        "user": "late",
+                        "count": 1
+                    }
+                ]
+            }
+        },
+        "sudo": {
+            "commands": [],
+            "auth_failures": [],
+            "denied": 0
+        },
+        "accounts": {
+            "users_added": [],
+            "users_removed": [],
+            "groups_added": [],
+            "groups_removed": [],
+            "group_membership": [],
+            "password_changes": []
+        }
+    },
+    "fail2ban": {
+        "bans_by_jail": {
+            "sshd": 1
+        },
+        "matches_by_jail": [],
+        "unique_banned": 1,
+        "top_banned": [
+            {
+                "ip": "346f816f79ec",
+                "scope": "public",
+                "count": 1
+            }
+        ]
+    },
+    "firewall": {
+        "blocked_total": 0,
+        "unique_sources": 0,
+        "top_ports": [],
+        "top_sources": []
+    },
+    "system": {
+        "journal": {
+            "by_priority": {
+                "crit": 1,
+                "err": 1,
+                "warning": 2
+            },
+            "by_source": {
+                "redis-server": 2,
+                "kernel": 1,
+                "weird": 1
+            },
+            "kernel_messages": 1,
+            "firewall_lines_skipped": 2,
+            "oom_kills": {
+                "php-fpm8.4": 1
+            },
+            "top_messages": [
+                {
+                    "sig": "2aa1e1834964",
+                    "sample": "redis-server: Connection from ip:5142fea3c1d1 rejected",
+                    "count": 2
+                },
+                {
+                    "sig": "6f9a633db278",
+                    "sample": "kernel: Out of memory: Killed process 4242 (php-fpm8.4) total-vm:1024kB",
+                    "count": 1
+                },
+                {
+                    "sig": "6fdeb6738ecb",
+                    "sample": "weird: Hi",
+                    "count": 1
+                }
+            ],
+            "new_messages": {
+                "new": [],
+                "new_total": 0,
+                "baseline_days": 1
+            }
+        },
+        "units": {
+            "available": true,
+            "failures": {
+                "horizon.service": {
+                    "exit-code": 1
+                }
+            },
+            "restart_loops": {
+                "horizon.service": 5
+            },
+            "failed_now": [
+                "horizon.service"
+            ]
+        },
+        "unattended_upgrades": {
+            "runs": 0,
+            "packages_upgraded": 0,
+            "packages": [],
+            "errors": []
+        },
+        "disk": [
+            {
+                "mount": "/",
+                "size_gb": 51.2,
+                "used_pct": 84,
+                "inodes_used_pct": 10
+            },
+            {
+                "mount": "/boot/efi",
+                "size_gb": 0.1,
+                "used_pct": 6,
+                "inodes_used_pct": null
+            }
+        ]
+    },
+    "nginx": {
+        "shared_access_log": {
+            "requests": 0,
+            "by_status_class": [],
+            "top_status": [],
+            "methods": [],
+            "malformed_requests": 0,
+            "unique_ips": 0,
+            "top_ips": [],
+            "top_paths": [],
+            "top_agents": [],
+            "scanner_patterns": [],
+            "bursts": [],
+            "new_paths": {
+                "new": [],
+                "new_total": 0,
+                "baseline_days": 1
+            }
+        },
+        "site_access_logs": [],
+        "site_errors": [],
+        "new_error_messages": {
+            "new": [],
+            "new_total": 0,
+            "baseline_days": 1
+        }
+    },
+    "apps": {
+        "new_errors": {
+            "new": [],
+            "new_total": 0,
+            "baseline_days": 1
+        }
+    },
+    "state": {
+        "baseline": false,
+        "previous_date": "2026-11-07",
+        "ports": {
+            "listening": [
+                "tcp/22 all sshd",
+                "tcp/443 all nginx",
+                "tcp/443 tailnet tailscaled",
+                "tcp/4444 all nc",
+                "tcp/6379 loopback redis-server",
+                "tcp/80 all nginx",
+                "udp/53 loopback systemd-resolve"
+            ],
+            "added": [
+                "tcp/4444 all nc"
+            ],
+            "removed": []
+        },
+        "firewall_rules": {
+            "status": "active",
+            "rules": [
+                "22 | ALLOW | Anywhere",
+                "80 | ALLOW | Anywhere",
+                "443 | ALLOW | Anywhere",
+                "3306 | ALLOW | ip:69f26ddef241",
+                "22 (v6) | ALLOW | Anywhere (v6)",
+                "6379 | ALLOW | Anywhere"
+            ],
+            "status_changed": false,
+            "added": [
+                "6379 | ALLOW | Anywhere"
+            ],
+            "removed": []
+        },
+        "access_control": {
+            "sudo_group_members": [
+                "forge (sudo)"
+            ],
+            "login_shell_users": [
+                "backdoor",
+                "forge",
+                "root"
+            ],
+            "authorized_keys": 2,
+            "changed_files": [
+                "/etc/passwd",
+                "/home/forge/.ssh/authorized_keys"
+            ],
+            "removed_files": [],
+            "keys_added": [
+                {
+                    "key": "/home/forge/.ssh/authorized_keys raw:139e3aa0d7bce0a7",
+                    "comment": "intruder@laptop"
+                }
+            ],
+            "keys_removed": [],
+            "users_added": [
+                "backdoor"
+            ],
+            "users_removed": [],
+            "groups_added": [],
+            "sudoers_added": []
+        },
+        "scheduled": {
+            "cron_files": 3,
+            "timers": 2,
+            "cron_added": [
+                "/etc/cron.d/evil"
+            ],
+            "cron_changed": [],
+            "cron_removed": [],
+            "timers_added": [],
+            "timers_removed": []
+        },
+        "webroots": {
+            "sites_checked": 2,
+            "findings": {
+                "craft.example.net": {
+                    "modified_count": 1
+                },
+                "example.com": {
+                    "head_moved_within_release": true,
+                    "untracked_count": 2,
+                    "new_executable": [
+                        "public/new.php",
+                        "public/storage/up.php"
+                    ],
+                    "changed_executable": [
+                        "public/index.php"
+                    ]
+                }
+            }
+        },
+        "processes": {
+            "since_previous_run": true,
+            "top_cpu": [
+                {
+                    "user": "forge",
+                    "command": "xmrig",
+                    "cpu_seconds": 0,
+                    "processes": 1
+                },
+                {
+                    "user": "mysql",
+                    "command": "mysqld",
+                    "cpu_seconds": 0,
+                    "processes": 1
+                },
+                {
+                    "user": "root",
+                    "command": "systemd",
+                    "cpu_seconds": 0,
+                    "processes": 1
+                },
+                {
+                    "user": "www-data",
+                    "command": "php-fpm8.4",
+                    "cpu_seconds": 0,
+                    "processes": 2
+                }
+            ],
+            "total_processes": 5
+        },
+        "patching": {
+            "updates": 12,
+            "security_updates": 3,
+            "reboot_required": true,
+            "reboot_packages": [
+                "linux-image-6.17.0-1"
+            ]
+        },
+        "tls": {
+            "certificates": 1,
+            "expiring_soon": [
+                {
+                    "names": [
+                        "example.com",
+                        "www.example.com"
+                    ],
+                    "days_left": 10
+                }
+            ],
+            "soonest_days_left": 10
+        }
+    },
+    "collector": {
+        "seconds": 0,
+        "section_seconds": {
+            "auth": 0,
+            "fail2ban": 0,
+            "firewall": 0,
+            "system": 0,
+            "nginx": 0,
+            "apps": 0,
+            "state": 0
+        },
+        "errors": [],
+        "geo": false
+    }
+}

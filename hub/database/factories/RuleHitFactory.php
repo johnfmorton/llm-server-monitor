@@ -23,6 +23,7 @@ class RuleHitFactory extends Factory
             'date' => today()->subDay(),
             'daily_summary_id' => null,
             'rule' => 'new_listening_port',
+            'title' => 'New listening port: tcp/4444 all nc',
             'evidence' => ['added' => ['tcp/4444 all nc']],
         ];
     }

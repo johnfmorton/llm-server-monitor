@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Console\Commands\CreateUser;
+use App\Models\DailySummary;
+use App\Models\RuleHit;
 use App\Models\Server;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -83,5 +85,54 @@ class ServerCommandsTest extends TestCase
             ->expectsQuestion('Password', 'short')
             ->assertFailed();
         $this->assertSame(0, User::count());
+    }
+
+    public function test_server_config_edits_the_allowlist_known_units_and_notes(): void
+    {
+        $server = Server::factory()->create(['name' => 'jfm', 'is_client' => false]);
+        $notes = tempnam(sys_get_temp_dir(), 'notes');
+        file_put_contents($notes, "Horizon restarts nightly.\n");
+
+        $exitCode = Artisan::call('logwatch:server-config', [
+            'name' => 'jfm',
+            '--allow-key' => ['SHA256:abc', 'deploy@ci'],
+            '--known-failed-unit' => ['logrotate.service'],
+            '--notes-file' => $notes,
+            '--client' => true,
+        ]);
+        unlink($notes);
+
+        $this->assertSame(0, $exitCode);
+        $server->refresh();
+        $this->assertSame(['SHA256:abc', 'deploy@ci'], $server->ssh_allowlist);
+        $this->assertSame(['logrotate.service'], $server->known_failed_units);
+        $this->assertSame('Horizon restarts nightly.', $server->notes);
+        $this->assertTrue($server->is_client);
+
+        Artisan::call('logwatch:server-config', ['name' => 'jfm', '--remove-allow-key' => ['deploy@ci'], '--remove-known-failed-unit' => ['logrotate.service']]);
+
+        $server->refresh();
+        $this->assertSame(['SHA256:abc'], $server->ssh_allowlist);
+        $this->assertNull($server->known_failed_units);
+        $this->assertStringContainsString('SHA256:abc', Artisan::output());
+    }
+
+    public function test_review_command_runs_the_rules_and_review_for_one_day(): void
+    {
+        $summary = DailySummary::factory()->create(['date' => '2026-11-07', 'payload' => ['state' => ['ports' => ['added' => ['tcp/4444 all nc']]]]]);
+
+        $exitCode = Artisan::call('logwatch:review', ['name' => $summary->server->name, 'date' => '2026-11-07', '--now' => true]);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Hard rules: 1 new alert.', Artisan::output());
+        $this->assertSame('ok', $summary->reviews()->sole()->verdict->value);
+        $this->assertSame(1, RuleHit::count());
+    }
+
+    public function test_review_command_reports_a_missing_day(): void
+    {
+        $server = Server::factory()->create();
+
+        $this->assertSame(1, Artisan::call('logwatch:review', ['name' => $server->name, 'date' => '2026-11-07']));
     }
 }

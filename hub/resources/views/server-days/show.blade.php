@@ -15,14 +15,37 @@
 
     <h1>{{ $server->name }} <span class="muted">{{ $day->format('l j F Y') }}</span></h1>
 
+    @if (session('status'))
+        <p class="notice" role="status">{{ session('status') }}</p>
+    @endif
+
     @if ($alerts->isNotEmpty())
         <section>
             <h2>Alerts</h2>
             <ul class="items">
                 @foreach ($alerts as $alert)
-                    <li class="item item--alert">
+                    <li @class(['item', 'item--alert' => ! $alert->acknowledged_at, 'item--info' => $alert->acknowledged_at])>
                         <strong>{{ $alert->title }}</strong>
-                        <span class="muted">{{ str_replace('_', ' ', $alert->source->value) }}{{ $alert->acknowledged_at ? ' · acknowledged' : '' }}</span>
+                        <span class="muted">
+                            {{ $alert->source === \App\AlertSource::Rule ? 'hard rule' : str_replace('_', ' ', $alert->source->value) }}
+                            · {{ $alert->emailed_at ? 'emailed '.$alert->emailed_at->format('H:i') : 'not emailed' }}
+                            @if ($alert->acknowledged_at)
+                                · acknowledged {{ $alert->acknowledged_at->format('j M H:i') }}
+                            @endif
+                        </span>
+                        @if ($alert->ruleHit)
+                            <ul class="evidence">
+                                @foreach (\App\Monitoring\Evidence::lines($alert->ruleHit->evidence) as $line)
+                                    <li>{{ $line }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        @unless ($alert->acknowledged_at)
+                            <form method="post" action="{{ route('alerts.acknowledge', $alert) }}" class="inline-form">
+                                @csrf
+                                <button type="submit">Acknowledge</button>
+                            </form>
+                        @endunless
                     </li>
                 @endforeach
             </ul>
@@ -32,33 +55,35 @@
     <section>
         <h2>Review</h2>
         @forelse ($reviews as $review)
-            <p>
-                <span class="badge badge--{{ $review->verdict->value }}">{{ $review->verdict->value }}</span>
-                <span class="muted">{{ $review->model }} · confidence {{ $review->confidence ?? '–' }}</span>
-            </p>
-            <ul class="items">
-                @foreach ($review->findings as $finding)
-                    <li class="item item--{{ $finding['severity'] ?? 'info' }}">
-                        <strong>{{ $finding['title'] ?? 'Finding' }}</strong>
-                        <p>{{ $finding['evidence'] ?? '' }}</p>
-                    </li>
-                @endforeach
-            </ul>
+            @if ($review->verdict)
+                <p>
+                    <span class="badge badge--{{ $review->verdict->value }}">{{ $review->verdict->value }}</span>
+                    <span class="muted">{{ $review->model }} · confidence {{ $review->confidence ?? '–' }} · {{ number_format($review->input_tokens + $review->output_tokens) }} tokens</span>
+                </p>
+                @if ($review->summary)
+                    <p>{{ $review->summary }}</p>
+                @endif
+                <ul class="items">
+                    @foreach ($review->findings as $finding)
+                        <li class="item item--{{ $finding['severity'] ?? 'info' }}">
+                            <strong>{{ $finding['title'] ?? 'Finding' }}</strong>
+                            <span class="muted">{{ $finding['severity'] ?? '' }}</span>
+                            <p>{{ $finding['evidence'] ?? '' }}</p>
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <p><span class="badge badge--failed">failed</span> <span class="muted">{{ $review->created_at->format('j M H:i') }}</span></p>
+                <p class="muted">{{ $review->error }}</p>
+            @endif
+            @break
         @empty
             <p class="muted">{{ $summary ? 'Not reviewed yet.' : 'Nothing to review.' }}</p>
         @endforelse
+        @if ($reviews->count() > 1)
+            <p class="muted">{{ $reviews->count() - 1 }} earlier {{ Str::plural('review', $reviews->count() - 1) }} of this day not shown.</p>
+        @endif
     </section>
-
-    @if ($ruleHits->isNotEmpty())
-        <section>
-            <h2>Rule hits</h2>
-            <ul class="items">
-                @foreach ($ruleHits as $hit)
-                    <li class="item item--alert"><strong>{{ str_replace('_', ' ', $hit->rule) }}</strong></li>
-                @endforeach
-            </ul>
-        </section>
-    @endif
 
     <section>
         <h2>Key numbers</h2>

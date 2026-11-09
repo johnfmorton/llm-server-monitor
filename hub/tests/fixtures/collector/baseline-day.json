@@ -1,0 +1,619 @@
+{
+    "schema": 1,
+    "collector_version": "0.1.0",
+    "server": "test",
+    "date": "2026-11-07",
+    "window": {
+        "start": "2026-11-07T00:00:00+00:00",
+        "end": "2026-11-08T00:00:00+00:00"
+    },
+    "generated_at": "2026-11-08T19:41:13+00:00",
+    "sites": [
+        {
+            "name": "example.com",
+            "id": "1001",
+            "domains": 2,
+            "access_log": false
+        },
+        {
+            "name": "craft.example.net",
+            "id": "1002",
+            "domains": 1,
+            "access_log": false
+        }
+    ],
+    "auth": {
+        "lines_in_window": 14,
+        "ssh": {
+            "logins": [
+                {
+                    "user": "forge",
+                    "method": "publickey",
+                    "source": {
+                        "ip": "c1ac3f9c401b",
+                        "scope": "tailnet"
+                    },
+                    "key": "SHA256:abcTailnetKeyFingerprint",
+                    "key_comment": "(not in any authorized_keys)",
+                    "count": 1
+                },
+                {
+                    "user": "root",
+                    "method": "publickey",
+                    "source": {
+                        "ip": "46472c71c7d2",
+                        "scope": "public"
+                    },
+                    "key": "SHA256:10drkYVFlmQFGiXMd05vONaEEFco01R5vivAFOnWwrc",
+                    "key_comment": "worker@forge",
+                    "count": 1
+                }
+            ],
+            "logins_from_outside_tailnet": 1,
+            "failed": {
+                "invalid_user": 4,
+                "bad_auth": 1,
+                "preauth_disconnect": 1,
+                "max_auth_exceeded": 0,
+                "total": 6,
+                "unique_sources": 4,
+                "top_sources": [
+                    {
+                        "ip": "bd1380d5f0ea",
+                        "scope": "public",
+                        "count": 3
+                    },
+                    {
+                        "ip": "6c47772d7bc4",
+                        "scope": "public",
+                        "count": 1
+                    },
+                    {
+                        "ip": "59848cc65435",
+                        "scope": "public",
+                        "count": 1
+                    },
+                    {
+                        "ip": "e7b292cc9acb",
+                        "scope": "public",
+                        "count": 1
+                    }
+                ],
+                "top_usernames": [
+                    {
+                        "user": "admin",
+                        "count": 2
+                    },
+                    {
+                        "user": "oracle",
+                        "count": 1
+                    },
+                    {
+                        "user": "root",
+                        "count": 1
+                    },
+                    {
+                        "user": "test",
+                        "count": 1
+                    },
+                    {
+                        "user": "ubuntu",
+                        "count": 1
+                    }
+                ]
+            }
+        },
+        "sudo": {
+            "commands": [
+                {
+                    "user": "forge",
+                    "as": "root",
+                    "command": "/usr/bin/apt-get",
+                    "count": 2
+                }
+            ],
+            "auth_failures": {
+                "forge": 1
+            },
+            "denied": 0
+        },
+        "accounts": {
+            "users_added": [
+                "backdoor"
+            ],
+            "users_removed": [],
+            "groups_added": [],
+            "groups_removed": [],
+            "group_membership": [
+                "backdoor +sudo"
+            ],
+            "password_changes": []
+        }
+    },
+    "fail2ban": {
+        "bans_by_jail": {
+            "sshd": 2
+        },
+        "matches_by_jail": {
+            "sshd": 1
+        },
+        "unique_banned": 2,
+        "top_banned": [
+            {
+                "ip": "e7b292cc9acb",
+                "scope": "public",
+                "count": 1
+            },
+            {
+                "ip": "bd1380d5f0ea",
+                "scope": "public",
+                "count": 1
+            }
+        ]
+    },
+    "firewall": {
+        "blocked_total": 3,
+        "unique_sources": 2,
+        "top_ports": [
+            {
+                "port": "tcp/3389",
+                "count": 2
+            },
+            {
+                "port": "tcp/23",
+                "count": 1
+            }
+        ],
+        "top_sources": [
+            {
+                "ip": "71bfce902684",
+                "scope": "public",
+                "count": 2
+            },
+            {
+                "ip": "22adfb33d5ea",
+                "scope": "public",
+                "count": 1
+            }
+        ]
+    },
+    "system": {
+        "journal": {
+            "by_priority": {
+                "crit": 1,
+                "err": 1,
+                "warning": 2
+            },
+            "by_source": {
+                "redis-server": 2,
+                "kernel": 1,
+                "weird": 1
+            },
+            "kernel_messages": 1,
+            "firewall_lines_skipped": 2,
+            "oom_kills": {
+                "php-fpm8.4": 1
+            },
+            "top_messages": [
+                {
+                    "sig": "2aa1e1834964",
+                    "sample": "redis-server: Connection from ip:5142fea3c1d1 rejected",
+                    "count": 2
+                },
+                {
+                    "sig": "6f9a633db278",
+                    "sample": "kernel: Out of memory: Killed process 4242 (php-fpm8.4) total-vm:1024kB",
+                    "count": 1
+                },
+                {
+                    "sig": "6fdeb6738ecb",
+                    "sample": "weird: Hi",
+                    "count": 1
+                }
+            ],
+            "new_messages": {
+                "new": [
+                    "kernel: Out of memory: Killed process 4242 (php-fpm8.4) total-vm:1024kB",
+                    "redis-server: Connection from ip:5142fea3c1d1 rejected",
+                    "weird: Hi"
+                ],
+                "new_total": 3,
+                "baseline_days": 0
+            }
+        },
+        "units": {
+            "available": true,
+            "failures": {
+                "horizon.service": {
+                    "exit-code": 1
+                }
+            },
+            "restart_loops": {
+                "horizon.service": 5
+            },
+            "failed_now": [
+                "horizon.service"
+            ]
+        },
+        "unattended_upgrades": {
+            "runs": 1,
+            "packages_upgraded": 2,
+            "packages": [
+                "libssl3t64",
+                "openssl"
+            ],
+            "errors": [
+                {
+                    "sig": "441946acd932",
+                    "sample": "dpkg returned an error for package foo at ip:2cc20c952532",
+                    "count": 1
+                }
+            ]
+        },
+        "disk": [
+            {
+                "mount": "/",
+                "size_gb": 51.2,
+                "used_pct": 84,
+                "inodes_used_pct": 10
+            },
+            {
+                "mount": "/boot/efi",
+                "size_gb": 0.1,
+                "used_pct": 6,
+                "inodes_used_pct": null
+            }
+        ]
+    },
+    "nginx": {
+        "shared_access_log": {
+            "requests": 137,
+            "by_status_class": {
+                "3xx": 2,
+                "4xx": 135
+            },
+            "top_status": {
+                "444": 134,
+                "301": 2,
+                "400": 1
+            },
+            "methods": {
+                "GET": 135,
+                "POST": 1
+            },
+            "malformed_requests": 1,
+            "unique_ips": 4,
+            "top_ips": [
+                {
+                    "ip": "de3fe679c02d",
+                    "scope": "public",
+                    "count": 130
+                },
+                {
+                    "ip": "22be1de3505a",
+                    "scope": "public",
+                    "count": 3
+                },
+                {
+                    "ip": "cbf0d6c61415",
+                    "scope": "public",
+                    "count": 2
+                },
+                {
+                    "ip": "23cd589f6713",
+                    "scope": "public",
+                    "count": 2
+                }
+            ],
+            "top_paths": [
+                {
+                    "path": "/api/v1/validate/code",
+                    "count": 130
+                },
+                {
+                    "path": "/",
+                    "count": 1
+                },
+                {
+                    "path": "/.env",
+                    "count": 1
+                },
+                {
+                    "path": "/.git/config",
+                    "count": 1
+                },
+                {
+                    "path": "/cgi-bin/luci",
+                    "count": 1
+                },
+                {
+                    "path": "/reset",
+                    "count": 1
+                },
+                {
+                    "path": "/wp-login.php",
+                    "count": 1
+                }
+            ],
+            "top_agents": [
+                {
+                    "agent": "python-requests/2.31",
+                    "count": 130
+                },
+                {
+                    "agent": "(none)",
+                    "count": 2
+                },
+                {
+                    "agent": "Mozilla/5.0",
+                    "count": 2
+                },
+                {
+                    "agent": "Mozilla/5.0 zgrab",
+                    "count": 2
+                },
+                {
+                    "agent": "Mozilla/5.0 (X11; Linux) contact [email]",
+                    "count": 1
+                }
+            ],
+            "scanner_patterns": {
+                "cgi": 1,
+                "env": 1,
+                "git": 1,
+                "wp-login": 1
+            },
+            "bursts": [
+                {
+                    "ip": "de3fe679c02d",
+                    "scope": "public",
+                    "peak_per_minute": 130
+                }
+            ],
+            "new_paths": {
+                "new": [
+                    "/.env",
+                    "/.git/config",
+                    "/wp-login.php",
+                    "/reset",
+                    "/",
+                    "/cgi-bin/luci",
+                    "/api/v1/validate/code"
+                ],
+                "new_total": 7,
+                "baseline_days": 0
+            }
+        },
+        "site_access_logs": [],
+        "site_errors": {
+            "example.com": {
+                "total": 5,
+                "by_level": {
+                    "error": 5
+                },
+                "by_type": {
+                    "missing_script_probe": 2,
+                    "upstream_timeout": 2,
+                    "php_fatal": 1
+                },
+                "unique_clients": 4,
+                "probe_scripts": [
+                    {
+                        "script": "y.php",
+                        "count": 1
+                    },
+                    {
+                        "script": "zero.php",
+                        "count": 1
+                    }
+                ],
+                "top_messages": [
+                    {
+                        "sig": "65b2b39c2ab0",
+                        "sample": "upstream timed out (110: Connection timed out) while reading response header from upstream",
+                        "count": 2
+                    },
+                    {
+                        "sig": "fcce46653869",
+                        "sample": "FastCGI sent in stderr: \"PHP message: PHP Fatal error: Allowed memory size of 134217728 bytes exhausted in <release>/app/Big.php on line 12\" while reading response header from upstream",
+                        "count": 1
+                    }
+                ]
+            }
+        },
+        "new_error_messages": {
+            "new": [
+                "example.com: upstream timed out (110: Connection timed out) while reading response header from upstream",
+                "example.com: FastCGI sent in stderr: \"PHP message: PHP Fatal error: Allowed memory size of 134217728 bytes exhausted in <release>/app/Big.php on line 12\" while reading response header from upstream"
+            ],
+            "new_total": 2,
+            "baseline_days": 0
+        }
+    },
+    "apps": {
+        "sites": {
+            "craft.example.net": {
+                "framework": "craft",
+                "by_level": {
+                    "ERROR": 1,
+                    "INFO": 1,
+                    "WARNING": 1
+                },
+                "by_channel": {
+                    "web": {
+                        "ERROR": 1,
+                        "INFO": 1,
+                        "WARNING": 1
+                    }
+                },
+                "top_errors": [
+                    {
+                        "sig": "c032994ff6f7",
+                        "sample": "[web.ERROR] yii\\web\\HttpException:400: Submitted data was tampered.",
+                        "count": 1
+                    }
+                ]
+            },
+            "example.com": {
+                "framework": "laravel",
+                "by_level": {
+                    "CRITICAL": 1,
+                    "DEBUG": 1,
+                    "ERROR": 2,
+                    "INFO": 1,
+                    "WARNING": 1
+                },
+                "by_channel": {
+                    "laravel": {
+                        "DEBUG": 1,
+                        "INFO": 1,
+                        "ERROR": 2,
+                        "WARNING": 1,
+                        "CRITICAL": 1
+                    }
+                },
+                "top_errors": [
+                    {
+                        "sig": "942b417d677a",
+                        "sample": "[laravel.ERROR] Illuminate\\Database\\QueryException: SQLSTATE[HY000] [2002] Connection refused (Connection: mysql, SQL: select * from users where email = [email])",
+                        "count": 2
+                    },
+                    {
+                        "sig": "6931ba9982c9",
+                        "sample": "[laravel.CRITICAL] Payment webhook signature invalid [redacted]",
+                        "count": 1
+                    }
+                ]
+            }
+        },
+        "new_errors": {
+            "new": [
+                "example.com: [laravel.ERROR] Illuminate\\Database\\QueryException: SQLSTATE[HY000] [2002] Connection refused (Connection: mysql, SQL: select * from users where email = [email])",
+                "example.com: [laravel.CRITICAL] Payment webhook signature invalid [redacted]",
+                "craft.example.net: [web.ERROR] yii\\web\\HttpException:400: Submitted data was tampered."
+            ],
+            "new_total": 3,
+            "baseline_days": 0
+        }
+    },
+    "state": {
+        "baseline": true,
+        "previous_date": null,
+        "ports": {
+            "listening": [
+                "tcp/22 all sshd",
+                "tcp/443 all nginx",
+                "tcp/443 tailnet tailscaled",
+                "tcp/6379 loopback redis-server",
+                "tcp/80 all nginx",
+                "udp/53 loopback systemd-resolve"
+            ],
+            "added": [],
+            "removed": []
+        },
+        "firewall_rules": {
+            "status": "active",
+            "rules": [
+                "22 | ALLOW | Anywhere",
+                "80 | ALLOW | Anywhere",
+                "443 | ALLOW | Anywhere",
+                "3306 | ALLOW | ip:69f26ddef241",
+                "22 (v6) | ALLOW | Anywhere (v6)"
+            ]
+        },
+        "access_control": {
+            "sudo_group_members": [
+                "forge (sudo)"
+            ],
+            "login_shell_users": [
+                "forge",
+                "root"
+            ],
+            "authorized_keys": 1
+        },
+        "scheduled": {
+            "cron_files": 2,
+            "timers": 2
+        },
+        "webroots": {
+            "sites_checked": 2,
+            "findings": {
+                "craft.example.net": {
+                    "modified_tracked": [
+                        "M config/app.php"
+                    ]
+                },
+                "example.com": {
+                    "untracked_executable": [
+                        "public/shell.php"
+                    ]
+                }
+            }
+        },
+        "processes": {
+            "since_previous_run": false,
+            "top_cpu": [
+                {
+                    "user": "forge",
+                    "command": "xmrig",
+                    "cpu_seconds": 90000,
+                    "processes": 1
+                },
+                {
+                    "user": "mysql",
+                    "command": "mysqld",
+                    "cpu_seconds": 40000,
+                    "processes": 1
+                },
+                {
+                    "user": "www-data",
+                    "command": "php-fpm8.4",
+                    "cpu_seconds": 8000,
+                    "processes": 2
+                },
+                {
+                    "user": "root",
+                    "command": "systemd",
+                    "cpu_seconds": 120,
+                    "processes": 1
+                }
+            ],
+            "total_processes": 5
+        },
+        "patching": {
+            "updates": 12,
+            "security_updates": 3,
+            "reboot_required": true,
+            "reboot_packages": [
+                "linux-image-6.17.0-1"
+            ]
+        },
+        "tls": {
+            "certificates": 1,
+            "expiring_soon": [
+                {
+                    "names": [
+                        "example.com",
+                        "www.example.com"
+                    ],
+                    "days_left": 10
+                }
+            ],
+            "soonest_days_left": 10
+        }
+    },
+    "collector": {
+        "seconds": 0.01,
+        "section_seconds": {
+            "auth": 0,
+            "fail2ban": 0,
+            "firewall": 0,
+            "system": 0,
+            "nginx": 0,
+            "apps": 0,
+            "state": 0
+        },
+        "errors": [],
+        "geo": false
+    }
+}

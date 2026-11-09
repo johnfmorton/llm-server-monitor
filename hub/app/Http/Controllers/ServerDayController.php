@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Alert;
 use App\Models\DailySummary;
 use App\Models\Review;
-use App\Models\RuleHit;
 use App\Models\Server;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
@@ -14,7 +13,7 @@ use Illuminate\View\View;
 class ServerDayController extends Controller
 {
     /**
-     * One server's day: key numbers, review findings, alerts. Reviews and
+     * One server's day: alerts (with the rule evidence behind them), the review and key numbers. Reviews and
      * alerts outlive the summary (90 days against 30), so they're looked up by
      * server and date, not through the summary.
      */
@@ -28,8 +27,7 @@ class ServerDayController extends Controller
             ->first();
 
         $reviews = Review::query()->where('server_id', $server->id)->where('date', $day->toDateString())->latest('id')->get();
-        $ruleHits = RuleHit::query()->where('server_id', $server->id)->where('date', $day->toDateString())->get();
-        $alerts = Alert::query()->where('server_id', $server->id)->where('date', $day->toDateString())->latest('id')->get();
+        $alerts = Alert::query()->where('server_id', $server->id)->where('date', $day->toDateString())->with('ruleHit')->orderBy('id')->get();
 
         return view('server-days.show', [
             'server' => $server,
@@ -37,7 +35,6 @@ class ServerDayController extends Controller
             'summary' => $summary,
             'highlights' => $summary?->highlights() ?? [],
             'reviews' => $reviews,
-            'ruleHits' => $ruleHits,
             'alerts' => $alerts,
             'previousDay' => $day->copy()->subDay(),
             'nextDay' => $day->lt(today()->subDay()) ? $day->copy()->addDay() : null,

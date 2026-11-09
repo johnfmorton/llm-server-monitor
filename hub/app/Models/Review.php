@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['server_id', 'date', 'daily_summary_id', 'verdict', 'confidence', 'findings', 'model', 'input_tokens', 'output_tokens'])]
+#[Fillable(['server_id', 'date', 'daily_summary_id', 'verdict', 'confidence', 'summary', 'findings', 'error', 'model', 'input_tokens', 'output_tokens'])]
 class Review extends Model
 {
     /** @use HasFactory<ReviewFactory> */

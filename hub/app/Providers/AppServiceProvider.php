@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use Anthropic\Client;
+use App\Monitoring\Review\AnthropicReviewer;
+use App\Monitoring\Review\Reviewer;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -15,7 +18,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(Reviewer::class, fn (): Reviewer => new AnthropicReviewer(
+            client: new Client(
+                apiKey: config('logwatch.review.api_key'),
+                requestOptions: ['timeout' => (float) config('logwatch.review.timeout'), 'maxRetries' => 2],
+            ),
+            model: config('logwatch.review.model'),
+            effort: config('logwatch.review.effort'),
+            maxTokens: config('logwatch.review.max_tokens'),
+        ));
     }
 
     /**

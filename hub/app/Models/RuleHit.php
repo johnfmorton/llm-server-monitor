@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['server_id', 'date', 'daily_summary_id', 'rule', 'evidence'])]
+#[Fillable(['server_id', 'date', 'daily_summary_id', 'rule', 'title', 'evidence'])]
 class RuleHit extends Model
 {
     /** @use HasFactory<RuleHitFactory> */
