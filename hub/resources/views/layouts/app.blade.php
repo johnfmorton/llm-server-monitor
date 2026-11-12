@@ -11,6 +11,9 @@
     <header class="topbar">
         <a href="{{ route('dashboard') }}" class="brand">LogWatch</a>
         @auth
+            <nav class="nav">
+                <a href="{{ route('digest') }}" @if (request()->routeIs('digest')) aria-current="page" @endif>Weekly digest</a>
+            </nav>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="link-button">Log out</button>

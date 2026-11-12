@@ -80,7 +80,7 @@ class AlertPipelineTest extends TestCase
 
         Mail::assertSent(AlertMail::class, function (AlertMail $mail): bool {
             $mail->assertSeeInText('New listening port: tcp/4444 all nc');
-            $mail->assertSeeInText('Raised by: a hard rule (new listening port)');
+            $mail->assertSeeInText('Raised by: Hard rule: new listening port');
             $mail->assertSeeInText('intruder@laptop');
             $mail->assertSeeInHtml(route('server-days.show', ['jfm', '2026-11-08']), false);
 
@@ -154,7 +154,7 @@ class AlertPipelineTest extends TestCase
         $this->assertSame('.env returned 200', $alert->title);
         $this->assertNotNull($alert->emailed_at);
         Mail::assertSent(AlertMail::class, function (AlertMail $mail): bool {
-            $mail->assertSeeInText('Raised by: the model review (claude-sonnet-5-5)');
+            $mail->assertSeeInText('Raised by: Model review (claude-sonnet-5-5)');
             $mail->assertSeeInText('[high] .env returned 200: A scanner got a 200 for /.env on example.com.');
 
             return $mail->envelope()->subject === '[LogWatch] ALERT — jfm — .env returned 200';

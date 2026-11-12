@@ -57,6 +57,18 @@ class Alert extends Model
     }
 
     /**
+     * What raised the alert, for email and the day page. Needs ruleHit and review loaded.
+     */
+    public function sourceLabel(): string
+    {
+        return match ($this->source) {
+            AlertSource::Rule => 'Hard rule: '.str_replace('_', ' ', $this->ruleHit?->rule ?? ''),
+            AlertSource::Review => 'Model review'.($this->review?->model ? " ({$this->review->model})" : ''),
+            AlertSource::MissingReport => 'Missing report',
+        };
+    }
+
+    /**
      * @return Builder<self>
      */
     public function prunable(): Builder

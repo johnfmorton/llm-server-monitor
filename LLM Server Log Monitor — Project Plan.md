@@ -157,4 +157,6 @@ Prune summaries after 30 days, and keep reviews, rule hits and alerts for 90.
 - Decided: per-site access logs stay off for now. Start with existing logs plus the state snapshot, and turn on access logs per site only if a site needs it.
 - Which sites, if any, deserve access logs? Revisit after the tuning week.
 - Decided: alert email goes through Mailgun (Laravel's `mailgun` mailer). One email per server-day batch of new alerts; nothing is emailed in silent mode or without a recipient.
-- Should the weekly digest come by email, or live only on the dashboard? Proposed: dashboard only during the silent-mode week, then decide.
+- Should the weekly digest come by email, or live only on the dashboard? Proposed: dashboard only during the silent-mode week, then decide. Built so either works: the digest is always at `/digest`, and `LOGWATCH_DIGEST_EMAIL=true` emails it on Monday at 07:00 UTC.
+- Decided: a missing report is checked at 06:00 UTC (`LOGWATCH_REPORT_CUTOFF`), looking back three days so a gap isn't lost if the hub was down at the cutoff. Only servers that have reported before are checked, from their first report on.
+- Decided: the hub heartbeat is pinged by a queued job every five minutes, so it proves the scheduler and the queue worker are both running.

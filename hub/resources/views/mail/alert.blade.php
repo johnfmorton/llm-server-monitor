@@ -14,11 +14,7 @@
         <div style="border-left:4px solid #c62828;padding:4px 0 4px 12px;margin:0 0 20px;">
             <p style="margin:0;font-weight:600;">{{ $alert->title }}</p>
             <p style="margin:0 0 8px;font-size:13px;color:#6e6e73;">
-                @if ($alert->source === \App\AlertSource::Rule)
-                    Hard rule: {{ str_replace('_', ' ', $alert->ruleHit?->rule ?? '') }}
-                @else
-                    Model review: {{ $alert->review?->model }}
-                @endif
+                {{ $alert->sourceLabel() }}
             </p>
             @if ($alert->ruleHit)
                 <ul style="margin:0;padding-left:20px;font-size:14px;">
@@ -35,6 +31,8 @@
                         <li><strong>{{ $finding['title'] }}</strong> <span style="color:#6e6e73;">({{ $finding['severity'] }})</span><br>{{ $finding['evidence'] }}</li>
                     @endforeach
                 </ul>
+            @elseif ($alert->source === \App\AlertSource::MissingReport)
+                <p style="margin:0;">The collector didn't send a summary for this day. Check the server is up and its Forge scheduled job is still running.</p>
             @endif
         </div>
     @endforeach

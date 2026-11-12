@@ -56,4 +56,50 @@ return [
         'disk_used_pct' => 90,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Missing reports
+    |--------------------------------------------------------------------------
+    |
+    | Collectors report the previous UTC day shortly after midnight. If a
+    | server that has reported before has no summary for a day by the cutoff
+    | (UTC, next morning), that's an alert. The check looks back a few days so
+    | a gap isn't missed if the hub itself was down at the cutoff.
+    |
+    */
+
+    'reports' => [
+        'cutoff' => env('LOGWATCH_REPORT_CUTOFF', '06:00'),
+        'lookback_days' => 3,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Hub liveness
+    |--------------------------------------------------------------------------
+    |
+    | A check-in URL (for example from healthchecks.io) pinged every five
+    | minutes by a queued job, so it proves both the scheduler and the queue
+    | worker are running. If the pings stop, that service sends the email.
+    |
+    */
+
+    'heartbeat' => [
+        'url' => env('LOGWATCH_HEARTBEAT_URL'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Weekly digest
+    |--------------------------------------------------------------------------
+    |
+    | The digest is always on the dashboard. Emailing it on Monday mornings is
+    | off until the tuning week is over.
+    |
+    */
+
+    'digest' => [
+        'email' => (bool) env('LOGWATCH_DIGEST_EMAIL', false),
+    ],
+
 ];
