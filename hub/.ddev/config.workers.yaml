@@ -1,0 +1,10 @@
+# Background processes the hub needs in dev, supervised inside the web container.
+# They start and stop with `ddev start` / `ddev stop`, and supervisord restarts them if they crash.
+# queue:listen boots fresh code for every job, so edits take effect without a restart.
+web_extra_daemons:
+  - name: queue
+    command: "php artisan queue:listen --tries=3"
+    directory: /var/www/html
+  - name: scheduler
+    command: "php artisan schedule:work"
+    directory: /var/www/html
